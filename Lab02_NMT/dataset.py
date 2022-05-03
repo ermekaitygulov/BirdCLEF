@@ -1,3 +1,4 @@
+import os
 import random
 
 import librosa
@@ -13,20 +14,22 @@ def load_wav(fpath, offset, duration):
 
 
 class BirdDataset(Dataset):
-    def __init__(self, df, crop_len=30, sample_rate=32000):
+    def __init__(self, df, data_root, crop_len=30, sample_rate=32000):
         super().__init__()
         self.df = df
+        self.data_root = data_root
         self.crop_len = crop_len
         self.sample_rate = sample_rate
 
     def __getitem__(self, idx):
         fname = self.df.iloc[idx]['filename']
+        fpath = os.path.join(self.data_root, fname)
         wav_len = self.df.iloc[idx]['duration']
 
         max_offset = max(0, wav_len - self.crop_len)
         random_offset = random.randint(0, max_offset)
 
-        wav, sr = load_wav(fname, random_offset, self.crop_len)
+        wav, sr = load_wav(fpath, random_offset, self.crop_len)
         to_pad = self.crop_len * self.sample_rate - wav.shape[0]
         if to_pad > 0:
             wav = np.pad(wav, (0, to_pad))

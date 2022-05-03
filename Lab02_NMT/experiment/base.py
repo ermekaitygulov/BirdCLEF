@@ -43,7 +43,12 @@ class Experiment(ABC):
         data_config = self.config['data']
 
         train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2)
-        train_dataset = BirdDataset(train_meta)
+        train_dataset = BirdDataset(
+            train_meta,
+            data_root=data_config['root'],
+            crop_len=data_config['crop_len'],
+            sample_rate=data_config['sample_rate']
+        )
         train_dataloader = DataLoader(
             train_dataset,
             batch_size=data_config['batch_size'],
@@ -53,7 +58,12 @@ class Experiment(ABC):
             drop_last=True,
         )
 
-        val_dataset = BirdDataset(val_meta)
+        val_dataset = BirdDataset(
+            val_meta,
+            data_root=data_config['root'],
+            crop_len=data_config['crop_len'],
+            sample_rate=data_config['sample_rate']
+        )
         val_dataloader = DataLoader(
             val_dataset,
             batch_size=data_config['batch_size'],

@@ -7,7 +7,7 @@ from sklearn.metrics import (
 from utils import add_to_catalog
 
 METRICS_CATALOG = {
-    'f1': f1_score
+    'f1_score': f1_score
 }
 
 

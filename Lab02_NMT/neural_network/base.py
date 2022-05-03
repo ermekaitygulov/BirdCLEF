@@ -93,10 +93,9 @@ class Net(nn.Module):
         return audio2image
 
     @staticmethod
-    def _init_backbone(backbone="resnet18"):
+    def _init_backbone(**backbone_kwargs):
         backbone = timm.create_model(
-            backbone,
-            pretrained=False,
+            **backbone_kwargs,
             num_classes=0,
             global_pool="",
             in_chans=1,
@@ -122,30 +121,29 @@ class Net(nn.Module):
             self.backbone.load_state_dict(state_dict)
 
 
-class Mixup(torch.nn.Module):
+class Mixup(nn.Module):
     def __init__(self, mix_beta=1):
-
         super(Mixup, self).__init__()
         self.beta_distribution = Beta(mix_beta, mix_beta)
 
-    def forward(self, X, Y, weight=None):
+    def forward(self, X, Y, sample_weight=None):
 
         bs = X.shape[0]
         n_dims = len(X.shape)
         perm = torch.randperm(bs)
-        weight = self.beta_distribution.rsample(torch.Size((bs,))).to(X.device)
+        mixup_weight = self.beta_distribution.rsample(torch.Size((bs,))).to(X.device)
 
         if n_dims == 2:
-            X = weight.view(-1, 1) * X + (1 - weight.view(-1, 1)) * X[perm]
+            X = mixup_weight.view(-1, 1) * X + (1 - mixup_weight.view(-1, 1)) * X[perm]
         elif n_dims == 3:
-            X = weight.view(-1, 1, 1) * X + (1 - weight.view(-1, 1, 1)) * X[perm]
+            X = mixup_weight.view(-1, 1, 1) * X + (1 - mixup_weight.view(-1, 1, 1)) * X[perm]
         else:
-            X = weight.view(-1, 1, 1, 1) * X + (1 - weight.view(-1, 1, 1, 1)) * X[perm]
+            X = mixup_weight.view(-1, 1, 1, 1) * X + (1 - mixup_weight.view(-1, 1, 1, 1)) * X[perm]
 
-        Y = weight.view(-1, 1) * Y + (1 - weight.view(-1, 1)) * Y[perm]
+        Y = mixup_weight.view(-1, 1) * Y + (1 - mixup_weight.view(-1, 1)) * Y[perm]
 
-        if weight is None:
+        if sample_weight is None:
             return X, Y
         else:
-            weight = weight.view(-1) * weight + (1 - weight.view(-1)) * weight[perm]
-            return X, Y, weight
+            sample_weight = mixup_weight.view(-1) * sample_weight + (1 - mixup_weight.view(-1)) * sample_weight[perm]
+            return X, Y, sample_weight

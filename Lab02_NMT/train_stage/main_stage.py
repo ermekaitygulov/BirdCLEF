@@ -29,9 +29,6 @@ class MainStage:
 
     def train(self, train_iterator, val_iterator):
         train_step = 0
-        main_metric = 'balanced_accuracy'
-        best_metric = 0.
-        opt_dir = 1
 
         for epoch in range(self.config['epoch']):
             train_step = self.train_epoch(
@@ -39,19 +36,18 @@ class MainStage:
                 train_step
             )
             with torch.no_grad():
-                val_metrics = self.val_epoch(
+                self.val_epoch(
                     val_iterator,
                     epoch,
                 )
 
-            if (opt_dir * val_metrics[main_metric]) > (opt_dir * best_metric):
+            if (epoch + 1) % self.config['save_freq'] == 0:
                 if wandb.run:
                     save_path = os.path.join('model_save', wandb.run.name)
                     os.makedirs(save_path, exist_ok=True)
-                    torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.name}-model.pt'))
+                    torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
                 else:
-                    torch.save(self.model.state_dict(), f'{self.name}-model.pt')
-                best_metric = val_metrics[main_metric]
+                    torch.save(self.model.state_dict(), f'{self.name}-{epoch+1}-model.pt')
 
             print(f'Epoch: {epoch + 1:02}')
 

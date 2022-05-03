@@ -45,7 +45,7 @@ class Experiment(ABC):
         train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2)
         train_dataset = BirdDataset(
             train_meta,
-            data_root=data_config['root'],
+            data_root=data_config['wav_root'],
             crop_len=data_config['crop_len'],
             sample_rate=data_config['sample_rate']
         )
@@ -60,7 +60,7 @@ class Experiment(ABC):
 
         val_dataset = BirdDataset(
             val_meta,
-            data_root=data_config['root'],
+            data_root=data_config['wav_root'],
             crop_len=data_config['crop_len'],
             sample_rate=data_config['sample_rate']
         )
@@ -77,7 +77,7 @@ class Experiment(ABC):
 
     def read_meta(self):
         data_config = self.config['data']
-        train_meta = pd.read_csv(data_config['path'])
+        train_meta = pd.read_csv(data_config['meta_path'])
         train_meta.loc[:, 'secondary_labels'] = train_meta.secondary_labels.apply(eval)
         train_meta['target_raw'] = train_meta.secondary_labels + train_meta.primary_label.apply(lambda x: [x])
         all_species = sorted(set(train_meta.target_raw.sum()))
@@ -86,9 +86,10 @@ class Experiment(ABC):
 
     def init_model(self):
         model_config = self.config['model']
+        data_config = self.config['data']
         model_class = NN_CATALOG[model_config['name']]
 
-        model = model_class(len(self.all_species), int(self.config['crop_len'] // self.config['test_size']),
+        model = model_class(len(self.all_species), int(data_config['crop_len'] // data_config['test_wav_len']),
                             **model_config['params'])
         if 'model_path' in self.config:
             model.load(self.config['model_path'])
@@ -97,7 +98,7 @@ class Experiment(ABC):
 
     def init_metrics(self):
         score_conf = []
-        for metric_name, metric_kwargs in self.config['metric']:
+        for metric_name, metric_kwargs in self.config['metric'].items():
             metric_f = METRICS_CATALOG[metric_name]
             score_conf.append((metric_f, metric_kwargs or {}, metric_name))
         return score_conf

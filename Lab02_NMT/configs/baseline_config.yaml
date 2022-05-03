@@ -1,0 +1,27 @@
+data:
+  train_size: 0.8
+  val_size: 0.15
+  test_size: 0.05
+  batch_size: 64
+  path: '../../datasets/Machine_translation_EN_RU/data.txt'
+  word_min_freq: 5
+train:
+  epoch: 10
+  opt_class: Adam
+  grad_clip: 1
+model:
+  name: lstm_enc_dec
+  params:
+    hid_dim: &hid_dim 256
+    n_layers: &n_layers 2
+    teacher_forcing_ratio: 0
+    encoder:
+      emb_dim: 256
+      dropout: 0.5
+      hid_dim: *hid_dim
+      n_layers: *n_layers
+    decoder:
+      emb_dim: 256
+      dropout: 0.5
+      hid_dim: *hid_dim
+      n_layers: *n_layers

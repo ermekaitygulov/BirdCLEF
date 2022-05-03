@@ -18,22 +18,18 @@ class MainStage:
         'opt_params': {},
         'log_window_size': 10,
         'opt_class': 'Adam',
-        'teacher_enforce': {
-            'ratio_start': 0.,
-            'ratio_growth': 0.,
-            'ratio_max': 0.
-        }
     }
 
-    def __init__(self, model, stage_name, stage_config, pad_idx):
+    def __init__(self, model, stage_name, device, stage_config, metrics):
         self.config = self.default_config.copy()
         self.config.update(stage_config)
         self.name = stage_name
         self.model = model
         self.opt = self.init_opt()
         self.lr_scheduler = self.init_scheduler()
-        self.criterion = nn.BCEWithLogitsLoss()
-        self.teacher_enforce_ratio = self.config['teacher_enforce']['ratio_start']
+        self.criterion = nn.BCELoss()
+        self.device = device
+        self.metrics = metrics
 
     def train(self, train_iterator, val_iterator):
         train_step = 0
@@ -83,7 +79,6 @@ class MainStage:
             loss_window.append(loss.item())
             if (i + 1) % self.config['log_window_size'] == 0:
                 log_dict = dict()
-
                 log_dict[f'train_loss'] = np.mean(loss_window)
                 log_dict['train_step'] = global_step
                 log_dict['learning_rate'] = self.opt.param_groups[0]["lr"]
@@ -103,7 +98,7 @@ class MainStage:
         y_pred = None
 
         for batch in tqdm_dataloader:
-            logits = self.model(batch['wav'].to(self.device))
+            logits = self.model(batch['wav'].to(self.device))['logits']
             batch_target = batch['target'].cpu().numpy()
             batch_pred = logits.cpu().numpy()
 
@@ -129,8 +124,10 @@ class MainStage:
         return score_dict
 
     def compute_batch_loss(self, batch):
-        logits = self.model(batch['wav'])
-        loss = self.criterion(logits, batch['target'])
+        loss = self.model(
+            batch['wav'].to(self.device),
+            batch['target'].to(self.device)
+        )['loss']
         return loss
 
     def init_opt(self):

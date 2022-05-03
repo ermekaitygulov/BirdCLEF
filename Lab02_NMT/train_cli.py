@@ -33,7 +33,6 @@ def train_callback(args):
     device = configure_device(args.gpu)
     experiment = EXPERIMENT_CATALOG[experiment_name](experiment_config, device)
     experiment.train()
-    experiment.test()
 
 
 def read_config(config_path):

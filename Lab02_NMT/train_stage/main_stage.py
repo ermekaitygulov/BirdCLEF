@@ -8,6 +8,8 @@ from torch import optim
 from torch import nn
 from tqdm import tqdm
 
+from neural_network.base import save_model
+
 
 class MainStage:
     default_config = {
@@ -45,9 +47,11 @@ class MainStage:
                 if wandb.run:
                     save_path = os.path.join('model_save', wandb.run.name)
                     os.makedirs(save_path, exist_ok=True)
-                    torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
+                    save_model(self.model, os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
+                    # torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
                 else:
-                    torch.save(self.model.state_dict(), f'{self.name}-{epoch+1}-model.pt')
+                    save_model(self.model, f'{self.name}-{epoch+1}-model.pt')
+                    # torch.save(self.model.state_dict(), f'{self.name}-{epoch+1}-model.pt')
 
             print(f'Epoch: {epoch + 1:02}')
 

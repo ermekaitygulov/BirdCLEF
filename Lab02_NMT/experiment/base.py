@@ -10,7 +10,17 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 import wandb
 
-from dataset import BirdDataset
+from dataset.augmentations import (
+    Compose,
+    OneOf,
+    NoiseInjection,
+    GaussianNoise,
+    PinkNoise,
+    RandomVolume,
+    Normalize
+)
+from dataset.bird_clef import BirdDataset
+from neural_network.base import save_model
 from utils import Task
 from neural_network import NN_CATALOG
 from metrics import METRICS_CATALOG
@@ -42,12 +52,24 @@ class Experiment(ABC):
     def read_data(self):
         data_config = self.config['data']
 
-        train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2)
+        train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
         train_dataset = BirdDataset(
             train_meta,
             data_root=data_config['wav_root'],
             crop_len=data_config['crop_len'],
-            sample_rate=data_config['sample_rate']
+            sample_rate=data_config['sample_rate'],
+            augmentations=Compose([
+                    OneOf(
+                        [
+                            NoiseInjection(p=1, max_noise_level=0.04),
+                            GaussianNoise(p=1, min_snr=5, max_snr=20),
+                            PinkNoise(p=1, min_snr=5, max_snr=20),
+                        ],
+                        p=0.2,
+                    ),
+                    RandomVolume(p=0.2, limit=4),
+                    Normalize(p=1),
+                ])
         )
         train_dataloader = DataLoader(
             train_dataset,
@@ -62,7 +84,8 @@ class Experiment(ABC):
             val_meta,
             data_root=data_config['wav_root'],
             crop_len=data_config['crop_len'],
-            sample_rate=data_config['sample_rate']
+            sample_rate=data_config['sample_rate'],
+            augmentations=Compose([Normalize(p=1)])
         )
         val_dataloader = DataLoader(
             val_dataset,
@@ -111,9 +134,11 @@ class Experiment(ABC):
         if wandb.run:
             save_path = os.path.join('model_save', wandb.run.name)
             os.makedirs(save_path, exist_ok=True)
-            torch.save(self.model.state_dict(), os.path.join(save_path, 'final-model.pt'))
+            # torch.save(self.model.state_dict(), os.path.join(save_path, 'final-model.pt'))
+            save_model(self.model, os.path.join(save_path, 'final-model.pt'))
         else:
-            torch.save(self.model.state_dict(), 'final-model.pt')
+            save_model(self.model, 'final-model.pt')
+            # torch.save(self.model.state_dict(), 'final-model.pt')
 
 
 EXPERIMENT_CATALOG: Dict[str, Type[Experiment]] = {}

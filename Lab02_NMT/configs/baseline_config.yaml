@@ -12,12 +12,17 @@ train:
   grad_clip: 1
   score_trsh: [0.1, 0.2, 0.3, 0.4]
   save_freq: 4
+  scheduler_class: CosineAnnealingLR
+  scheduler_params:
+    eta_min: 0.000001
+    T_max: 500
 model:
   name: attention
   params:
     backbone_config:
       model_name: resnet18
       pretrained: True
+    batch_time_crop: True
 metric:
   f1_score:
     average: macro

@@ -20,7 +20,7 @@ from dataset.augmentations import (
     Normalize
 )
 from dataset.bird_clef import BirdDataset
-from neural_network.base import save_model
+from neural_network.base import save_model, load_model
 from utils import Task
 from neural_network import NN_CATALOG
 from metrics import METRICS_CATALOG
@@ -115,7 +115,7 @@ class Experiment(ABC):
         model = model_class(len(self.all_species), int(data_config['crop_len'] // data_config['test_wav_len']),
                             **model_config['params'])
         if 'model_path' in self.config:
-            model.load(self.config['model_path'])
+            load_model(model, self.config['model_path'], self.device)
         model.to(self.device)
         return model
 

@@ -14,11 +14,16 @@ def save_model(model, path):
     torch.save(model.state_dict(), path)
 
 
+def load_model(model, path, device):
+    state_dict = torch.load(path, map_location=device)
+    model.load_state_dict(state_dict)
+
+
 @add_to_catalog('baseline', NN_CATALOG)
 class Net(nn.Module):
     def __init__(self, output_len, batch_time_factor,
                  preproc_config=None, backbone_config=None,
-                 backbone_path=None):
+                 backbone_path=None, batch_time_crop=True):
         super().__init__()
         preproc_config = preproc_config or {}
         backbone_config = backbone_config or {}
@@ -30,6 +35,7 @@ class Net(nn.Module):
         self.loss = torch.nn.BCEWithLogitsLoss()
         self.mixup = Mixup()
         self.batch_time_factor = batch_time_factor
+        self.batch_time_crop = batch_time_crop
 
     def forward(self, wav_tensor, y=None):
         if self.training:
@@ -66,12 +72,18 @@ class Net(nn.Module):
         return spectrogram, y
 
     def batch_crop(self, tensor):
+        if not self.batch_time_crop:
+            return tensor
+
         factor = self.batch_time_factor
         b, t = tensor.shape[:2]
         tensor = tensor.reshape(b * factor, t // factor, *tensor.shape[2:])
         return tensor
 
     def batch_uncrop(self, tensor):
+        if not self.batch_time_crop:
+            return tensor
+
         factor = self.batch_time_factor
         b, t = tensor.shape[:2]
         tensor = tensor.reshape(b // factor, t * factor, *tensor.shape[2:])
@@ -155,7 +167,7 @@ class AttentionNet(Net):
         # average mel axis
         x = x.mean(axis=-1)
 
-        logits = self.head(x)  # b, n_out
+        logits = self.head(x)['logits']  # b, n_out
 
         if y is not None:
             loss = self.loss(logits, y)
@@ -167,6 +179,20 @@ class AttentionNet(Net):
     @staticmethod
     def _init_head(input_chs, output_len):
         head = Attention(input_chs, output_len, activation='linear')
+        return head
+
+
+@add_to_catalog('dropout_att', NN_CATALOG)
+class DropOutAtt(AttentionNet):
+    @staticmethod
+    def _init_head(input_chs, output_len):
+        head = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Conv1d(input_chs, input_chs, kernel_size=1),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            Attention(input_chs, output_len, activation='linear')
+        )
         return head
 
 
@@ -209,5 +235,5 @@ class Attention(nn.Module):
         # x: b, c, t
         attn = torch.softmax(torch.tanh(self.attn(x)), dim=-1)  # b, c, t
         x = self.cla(x)  # b, c, t
-        x = torch.sum(x * attn, dim=-1)  # b, c
-        return x
+        logits = torch.sum(x * attn, dim=-1)  # b, c
+        return {'logits': logits, 'segmentwise_logits': x, 'attention': attn}

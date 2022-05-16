@@ -140,6 +140,14 @@ class Net(nn.Module):
 
 @add_to_catalog('attention', NN_CATALOG)
 class AttentionNet(Net):
+    def __init__(self, *args,  maxpool_loss=False, **kwargs):
+        super(AttentionNet, self).__init__(*args, **kwargs)
+        self.maxpool_loss = maxpool_loss
+        self.maxpool = nn.Sequential(
+            nn.AdaptiveMaxPool1d(1),
+            nn.Flatten()
+        )
+
     def forward(self, wav_tensor, y=None):
         # wav_tensor: b, t
         if self.training:
@@ -167,10 +175,14 @@ class AttentionNet(Net):
         # average mel axis
         x = x.mean(axis=-1)
 
-        logits = self.head(x)['logits']  # b, n_out
+        attention_output = self.head(x)  # b, n_out
+        logits = attention_output['logits']
 
         if y is not None:
             loss = self.loss(logits, y)
+            if self.maxpool_loss:
+                maxpool_logits = self.maxpool(attention_output['segmentwise_logits'])
+                loss += 0.5 * self.loss(maxpool_logits, y)
         else:
             loss = None
 

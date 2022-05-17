@@ -290,7 +290,6 @@ class EffNet(FocalAttention):
         base_model = timm.create_model(
             "tf_efficientnet_b0_ns",
             **backbone_kwargs,
-            pretrained=True,
             in_chans=1
         )
         layers = list(base_model.children())[:-2]

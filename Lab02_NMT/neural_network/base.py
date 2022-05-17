@@ -29,9 +29,9 @@ class Net(nn.Module):
         backbone_config = backbone_config or {}
 
         self.audio2image = self._init_audio2image(**preproc_config)
-        self.backbone = self._init_backbone(**backbone_config)
+        self.backbone, output_chs = self._init_backbone(**backbone_config)
         self.load_backbone(backbone_path)
-        self.head = self._init_head(self.backbone.feature_info[-1]['num_chs'], output_len)
+        self.head = self._init_head(output_chs, output_len)
         self.loss = torch.nn.BCEWithLogitsLoss()
         self.mixup = Mixup()
         self.batch_time_factor = batch_time_factor
@@ -112,12 +112,13 @@ class Net(nn.Module):
     @staticmethod
     def _init_backbone(**backbone_kwargs):
         backbone = timm.create_model(
+            'resnet18',
             **backbone_kwargs,
             num_classes=0,
             global_pool="",
             in_chans=1,
         )
-        return backbone
+        return backbone, backbone.feature_info[-1]['num_chs']
 
     @staticmethod
     def _init_head(input_chs, output_len):
@@ -272,3 +273,18 @@ class BCEFocalLoss(nn.Module):
             (1. - targets) * probas**self.gamma * bce_loss
         loss = loss.mean()
         return loss
+
+
+@add_to_catalog('efficient_focal', NN_CATALOG)
+class EffNet(FocalAttention):
+    def _init_backbone(**backbone_kwargs):
+        base_model = timm.create_model(
+            'efficientnet_b0',
+            **backbone_kwargs,
+            pretrained=True,
+            in_chans=1
+        )
+        layers = list(base_model.children())[:-2]
+        backbone = nn.Sequential(*layers)
+        in_features = base_model.classifier.in_features
+        return backbone, in_features

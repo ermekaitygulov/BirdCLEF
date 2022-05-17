@@ -57,6 +57,8 @@ class MainStage:
                     # torch.save(self.model.state_dict(), f'{self.name}-{epoch+1}-model.pt')
 
             print(f'Epoch: {epoch + 1:02}')
+        with torch.no_grad():
+            print(self.val_epoch(val_iterator, None, log_wandb=False))
 
     def train_epoch(self, iterator, global_step):
         self.model.train()
@@ -97,7 +99,7 @@ class MainStage:
 
         return global_step
 
-    def val_epoch(self, dataloader, epoch):
+    def val_epoch(self, dataloader, epoch, log_wandb=True):
         tqdm_dataloader = tqdm(dataloader)
         self.model.eval()
         y_true = None
@@ -116,7 +118,9 @@ class MainStage:
                 y_pred = np.vstack((y_pred, batch_pred))
 
         val_metrics = self.score_pred(y_true, y_pred)
-        if wandb.run:
+        np.save('last_pred.npy', y_pred)
+        np.save('last_true.npy', y_true)
+        if wandb.run and log_wandb:
             wandb.log({self.name: {**val_metrics, 'epoch': epoch}})
         return val_metrics
 

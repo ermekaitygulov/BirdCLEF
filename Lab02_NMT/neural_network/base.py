@@ -180,16 +180,22 @@ class AttentionNet(Net):
 
         attention_output = self.head(x)  # b, n_out
         logits = attention_output['logits']
+        maxpool_logits = self.maxpool(attention_output['segmentwise_logits'])
+        mean_logits = attention_output['segmentwise_logits'].mean(axis=-1)
 
         if y is not None:
             loss = self.loss(logits, y)
             if self.maxpool_loss:
-                maxpool_logits = self.maxpool(attention_output['segmentwise_logits'])
                 loss += 0.5 * self.loss(maxpool_logits, y)
         else:
             loss = None
 
-        return {'loss': loss, 'logits': logits.sigmoid()}
+        return {
+            'loss': loss,
+            'logits': logits.sigmoid(),
+            'max_logits': maxpool_logits,
+            'mean_logits': mean_logits,
+        }
 
     @staticmethod
     def _init_head(input_chs, output_len):

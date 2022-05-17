@@ -208,6 +208,13 @@ class DropOutAtt(AttentionNet):
         return head
 
 
+@add_to_catalog('att_focal', NN_CATALOG)
+class FocalAttention(AttentionNet):
+    def __init__(self, *args, **kwargs):
+        super(FocalAttention, self).__init__(*args, **kwargs)
+        self.loss = BCEFocalLoss()
+
+
 class Mixup(nn.Module):
     def __init__(self, mix_beta=1):
         super(Mixup, self).__init__()
@@ -249,3 +256,19 @@ class Attention(nn.Module):
         x = self.cla(x)  # b, c, t
         logits = torch.sum(x * attn, dim=-1)  # b, c
         return {'logits': logits, 'segmentwise_logits': x, 'attention': attn}
+
+
+class BCEFocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, preds, targets):
+        bce_loss = nn.BCEWithLogitsLoss(reduction='none')(preds, targets)
+        probas = torch.sigmoid(preds)
+        loss = targets * self.alpha * \
+            (1. - probas)**self.gamma * bce_loss + \
+            (1. - targets) * probas**self.gamma * bce_loss
+        loss = loss.mean()
+        return loss

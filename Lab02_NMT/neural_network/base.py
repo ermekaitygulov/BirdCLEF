@@ -277,6 +277,7 @@ class BCEFocalLoss(nn.Module):
 
 @add_to_catalog('efficient_focal', NN_CATALOG)
 class EffNet(FocalAttention):
+    @staticmethod
     def _init_backbone(**backbone_kwargs):
         base_model = timm.create_model(
             'efficientnet_b0',

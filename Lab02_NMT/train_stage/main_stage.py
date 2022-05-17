@@ -6,6 +6,7 @@ import torch
 import wandb
 from torch import optim
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
 
 from neural_network.base import save_model
@@ -16,6 +17,7 @@ class MainStage:
         'opt_params': {},
         'log_window_size': 10,
         'opt_class': 'Adam',
+        'apex': False
     }
 
     def __init__(self, model, stage_name, device, stage_config, metrics):
@@ -25,6 +27,7 @@ class MainStage:
         self.model = model
         self.opt = self.init_opt()
         self.lr_scheduler = self.init_scheduler()
+        self.scaler = GradScaler(enabled=self.config['apex'])
         self.criterion = nn.BCELoss()
         self.device = device
         self.metrics = metrics
@@ -62,13 +65,20 @@ class MainStage:
         loss_window = deque(maxlen=self.config['log_window_size'])
         for i, batch in enumerate(tqdm_iterator):
             self.opt.zero_grad()
+            with autocast(enabled=self.config['apex']):
+                loss = self.compute_batch_loss(batch)
 
-            loss = self.compute_batch_loss(batch)
-            loss.backward()
+            self.scaler.scale(loss).backward()
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
+            self.scaler.step(self.opt)
+            self.scaler.update()
 
-            # Let's clip the gradient
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
-            self.opt.step()
+            # loss.backward()
+            #
+            # # Let's clip the gradient
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
+            # self.opt.step()
+
             if self.lr_scheduler:
                 self.lr_scheduler.step()
 

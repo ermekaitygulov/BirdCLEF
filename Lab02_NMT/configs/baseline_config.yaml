@@ -8,6 +8,7 @@ data:
   n_jobs: 4
 train:
   epoch: 40
+  apex: True
   opt_class: Adam
   grad_clip: 1
   score_trsh: [0.1, 0.2, 0.3, 0.4]

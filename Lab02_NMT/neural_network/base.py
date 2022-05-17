@@ -41,7 +41,8 @@ class Net(nn.Module):
         if self.training:
             wav_tensor = self.batch_crop(wav_tensor)
 
-        spectrogram = self.audio2image(wav_tensor)
+        with torch.cuda.amp.autocast(enabled=False):
+            spectrogram = self.audio2image(wav_tensor)
         spectrogram = spectrogram.permute(0, 2, 1)
         spectrogram = spectrogram[:, None, :, :]
 
@@ -154,7 +155,8 @@ class AttentionNet(Net):
         if self.training:
             wav_tensor = self.batch_crop(wav_tensor)  # b, t
 
-        spectrogram = self.audio2image(wav_tensor)  # b, m, t
+        with torch.cuda.amp.autocast(enabled=False):
+            spectrogram = self.audio2image(wav_tensor)  # b, m, t
         spectrogram = spectrogram.permute(0, 2, 1)  # b, t, m
         spectrogram = spectrogram[:, None, :, :]  # b, c, t, m
 
@@ -280,7 +282,7 @@ class EffNet(FocalAttention):
     @staticmethod
     def _init_backbone(**backbone_kwargs):
         base_model = timm.create_model(
-            'efficientnet_b0',
+            "tf_efficientnet_b0_ns",
             **backbone_kwargs,
             pretrained=True,
             in_chans=1

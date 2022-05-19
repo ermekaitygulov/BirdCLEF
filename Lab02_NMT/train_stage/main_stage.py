@@ -17,7 +17,8 @@ class MainStage:
         'opt_params': {},
         'log_window_size': 10,
         'opt_class': 'Adam',
-        'apex': False
+        'apex': False,
+        'save_path': 'model_save'
     }
 
     def __init__(self, model, stage_name, device, stage_config, metrics):
@@ -47,18 +48,12 @@ class MainStage:
                 )
 
             if (epoch + 1) % self.config['save_freq'] == 0:
-                if wandb.run:
-                    save_path = os.path.join('model_save', wandb.run.name)
-                    os.makedirs(save_path, exist_ok=True)
-                    save_model(self.model, os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
-                    # torch.save(self.model.state_dict(), os.path.join(save_path, f'{self.name}-{epoch+1}-model.pt'))
-                else:
-                    save_model(self.model, f'{self.name}-{epoch+1}-model.pt')
-                    # torch.save(self.model.state_dict(), f'{self.name}-{epoch+1}-model.pt')
+                self.save_model(f'{self.name}-{epoch+1}-model.pt')
 
             print(f'Epoch: {epoch + 1:02}')
         with torch.no_grad():
             print(self.val_epoch(val_iterator, None, log_wandb=False))
+        self.save_model('final-model.pt')
 
     def train_epoch(self, iterator, global_step):
         self.model.train()
@@ -71,15 +66,8 @@ class MainStage:
                 loss = self.compute_batch_loss(batch)
 
             self.scaler.scale(loss).backward()
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
             self.scaler.step(self.opt)
             self.scaler.update()
-
-            # loss.backward()
-            #
-            # # Let's clip the gradient
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
-            # self.opt.step()
 
             if self.lr_scheduler:
                 self.lr_scheduler.step()
@@ -154,3 +142,11 @@ class MainStage:
         scheduler_params = self.config['scheduler_params']
         scheduler = scheduler_class(self.opt, **scheduler_params)
         return scheduler
+
+    def save_model(self, save_name):
+        if wandb.run:
+            save_path = os.path.join(self.config['save_path'], wandb.run.name)
+            os.makedirs(save_path, exist_ok=True)
+            save_model(self.model, os.path.join(save_path, save_name))
+        else:
+            save_model(self.model, save_name)

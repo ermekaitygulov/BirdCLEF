@@ -47,7 +47,7 @@ class Experiment(ABC):
         self.trainer.train(train_iterator, val_iterator)
         end_time = time.time()
         self.time = end_time - start_time
-        self.save_model()
+        # self.save_model()
 
     def read_data(self):
         data_config = self.config['data']

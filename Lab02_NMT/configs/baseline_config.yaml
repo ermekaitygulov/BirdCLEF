@@ -1,4 +1,5 @@
 data:
+  fold: 0  # !!!!!!!!!!!!!!
   batch_size: 8
   meta_path: '../data/train_metadata_extended.csv'
   wav_root: '../data/train_audio'
@@ -12,12 +13,13 @@ train:
   opt_class: Adam
   grad_clip: 1
   score_trsh: [0.1, 0.2, 0.3, 0.4]
-  save_freq: 1
+  save_freq: 10
   scheduler_class: CosineAnnealingLR
   scheduler_params:
     eta_min: 0.000001
     T_max: 500
-model_path: model_save/baseline_39wbtt2e/final-model.pt
+  save_path: model_save/baseline_39wbtt2e/0_fold/   # !!!!!!!!!!!!!!
+model_path: model_save/baseline_39wbtt2e/final-model.pt   # !!!!!!!!!!!!!!
 model:
   name: 'efficient_focal'
   params:

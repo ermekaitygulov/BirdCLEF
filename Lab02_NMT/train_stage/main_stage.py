@@ -144,9 +144,8 @@ class MainStage:
         return scheduler
 
     def save_model(self, save_name):
+        save_path = self.config['save_path']
         if wandb.run:
             save_path = os.path.join(self.config['save_path'], wandb.run.name)
-            os.makedirs(save_path, exist_ok=True)
-            save_model(self.model, os.path.join(save_path, save_name))
-        else:
-            save_model(self.model, save_name)
+        os.makedirs(save_path, exist_ok=True)
+        save_model(self.model, os.path.join(save_path, save_name))

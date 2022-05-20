@@ -5,8 +5,7 @@ from typing import Type, Dict
 
 import pandas as pd
 
-import torch
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, train_test_split
 from torch.utils.data import DataLoader
 import wandb
 
@@ -24,6 +23,15 @@ from neural_network.base import save_model, load_model
 from utils import Task
 from neural_network import NN_CATALOG
 from metrics import METRICS_CATALOG
+
+
+def get_fold(pd_data, fold_i, fold_count, random_state):
+    kfold = KFold(fold_count, shuffle=True, random_state=random_state)
+    for i, train_idx, val_idx in kfold.split(pd_data, None):
+        if i == fold_i:
+            train_pd = pd_data.iloc[train_idx]
+            val_pd = pd_data.iloc[val_idx]
+            return train_pd, val_pd
 
 
 class Experiment(ABC):
@@ -52,7 +60,16 @@ class Experiment(ABC):
     def read_data(self):
         data_config = self.config['data']
 
-        train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
+        if 'fold_i' in data_config:
+            train_meta, val_meta = get_fold(
+                self.train_meta,
+                fold_i=data_config['fold_i'],
+                fold_count=5,
+                random_state=42,
+            )
+        else:
+            train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
+
         train_dataset = BirdDataset(
             train_meta,
             data_root=data_config['wav_root'],

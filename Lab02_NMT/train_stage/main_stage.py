@@ -150,3 +150,38 @@ class MainStage:
             save_model(self.model, os.path.join(save_path, save_name))
         else:
             save_model(self.model, save_name)
+
+
+class SpectroStage(MainStage):
+    def compute_batch_loss(self, batch):
+        loss = self.model(
+            None,
+            batch['target'].to(self.device),
+            batch['melspec'].to(self.device)
+        )['loss']
+        return loss
+
+    def val_epoch(self, dataloader, epoch, log_wandb=True):
+        tqdm_dataloader = tqdm(dataloader)
+        self.model.eval()
+        y_true = None
+        y_pred = None
+
+        for batch in tqdm_dataloader:
+            logits = self.model(None, None, batch['melspec'].to(self.device))['logits']
+            batch_target = batch['target'].cpu().numpy()
+            batch_pred = logits.cpu().numpy()
+
+            if y_true is None:
+                y_true = batch_target
+                y_pred = batch_pred
+            else:
+                y_true = np.vstack((y_true, batch_target))
+                y_pred = np.vstack((y_pred, batch_pred))
+
+        val_metrics = self.score_pred(y_true, y_pred)
+        np.save('last_pred.npy', y_pred)
+        np.save('last_true.npy', y_true)
+        if wandb.run and log_wandb:
+            wandb.log({self.name: {**val_metrics, 'epoch': epoch}})
+        return val_metrics

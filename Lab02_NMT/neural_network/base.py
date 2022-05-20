@@ -37,12 +37,18 @@ class Net(nn.Module):
         self.batch_time_factor = batch_time_factor
         self.batch_time_crop = batch_time_crop
 
-    def forward(self, wav_tensor, y=None):
-        if self.training:
-            wav_tensor = self.batch_crop(wav_tensor)
+    def forward(self, wav_tensor, y=None, spectrogram=None):
+        if spectrogram is not None and wav_tensor is None and self.training:
+            spectrogram = self.batch_crop(spectrogram)
+        elif spectrogram is None and wav_tensor is not None:
+            if self.training:
+                wav_tensor = self.batch_crop(wav_tensor)
 
-        with torch.cuda.amp.autocast(enabled=False):
-            spectrogram = self.audio2image(wav_tensor)
+            with torch.cuda.amp.autocast(enabled=False):
+                spectrogram = self.audio2image(wav_tensor)
+        else:
+            raise NotImplementedError
+
         spectrogram = spectrogram.permute(0, 2, 1)
         spectrogram = spectrogram[:, None, :, :]
 
@@ -150,13 +156,17 @@ class AttentionNet(Net):
             nn.Flatten()
         )
 
-    def forward(self, wav_tensor, y=None):
-        # wav_tensor: b, t
-        if self.training:
-            wav_tensor = self.batch_crop(wav_tensor)  # b, t
+    def forward(self, wav_tensor, y=None, spectrogram=None):
+        if spectrogram is not None and wav_tensor is None and self.training:
+            spectrogram = self.batch_crop(spectrogram)  # b, m, t
+        elif spectrogram is None and wav_tensor is not None:
+            # wav_tensor: b, t
+            if self.training:
+                wav_tensor = self.batch_crop(wav_tensor)  # b, t
 
-        with torch.cuda.amp.autocast(enabled=False):
-            spectrogram = self.audio2image(wav_tensor)  # b, m, t
+            with torch.cuda.amp.autocast(enabled=False):
+                spectrogram = self.audio2image(wav_tensor)  # b, m, t
+
         spectrogram = spectrogram.permute(0, 2, 1)  # b, t, m
         spectrogram = spectrogram[:, None, :, :]  # b, c, t, m
 

@@ -7,7 +7,7 @@ data:
   test_wav_len: 5
   n_jobs: 4
 train:
-  epoch: 10
+  epoch: 0
   apex: True
   opt_class: Adam
   grad_clip: 1

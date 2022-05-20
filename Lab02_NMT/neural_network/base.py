@@ -166,9 +166,11 @@ class AttentionNet(Net):
 
             with torch.cuda.amp.autocast(enabled=False):
                 spectrogram = self.audio2image(wav_tensor)  # b, m, t
-
-        spectrogram = spectrogram.permute(0, 2, 1)  # b, t, m
-        spectrogram = spectrogram[:, None, :, :]  # b, c, t, m
+        if len(spectrogram.shape) == 3:
+            spectrogram = spectrogram.permute(0, 2, 1)  # b, t, m
+            spectrogram = spectrogram[:, None, :, :]  # b, c, t, m
+        else:
+            spectrogram = spectrogram.permute(0, 1, 3, 2)  # b, c, m, t -> b, c, t, m
 
         if self.training:
             spectrogram = spectrogram.permute(0, 2, 1, 3)  # b, t, c, m
@@ -300,7 +302,7 @@ class EffNet(FocalAttention):
         base_model = timm.create_model(
             "tf_efficientnet_b0_ns",
             **backbone_kwargs,
-            in_chans=1
+            in_chans=3
         )
         layers = list(base_model.children())[:-2]
         backbone = nn.Sequential(*layers)

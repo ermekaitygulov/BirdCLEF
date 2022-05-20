@@ -157,7 +157,7 @@ class SpectroStage(MainStage):
         loss = self.model(
             None,
             batch['target'].to(self.device),
-            batch['melspec'].to(self.device)
+            batch['melspec_ext'].to(self.device)
         )['loss']
         return loss
 
@@ -168,7 +168,7 @@ class SpectroStage(MainStage):
         y_pred = None
 
         for batch in tqdm_dataloader:
-            logits = self.model(None, None, batch['melspec'].to(self.device))['logits']
+            logits = self.model(None, None, batch['melspec_ext'].to(self.device))['logits']
             batch_target = batch['target'].cpu().numpy()
             batch_pred = logits.cpu().numpy()
 

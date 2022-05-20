@@ -114,8 +114,8 @@ class SpectroDataset(BirdDataset):
         # norm_melspec = normalize_melspec(melspec)
         # norm_pcen = normalize_melspec(pcen)
         # norm_clean_mel = normalize_melspec(clean_mel)
-        image = np.stack([melspec, pcen, clean_mel], axis=-1)
-        return {'melspec': torch.tensor(melspec), 'melspec_ext': torch.tensor(image)}
+        image = np.stack([melspec, pcen, clean_mel], axis=0)
+        return {'melspec': torch.tensor(melspec), 'melspec_ext': torch.tensor(image).float()}
 
 # def normalize_melspec(X: np.ndarray):
 #     eps = 1e-6

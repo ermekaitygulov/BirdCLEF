@@ -60,6 +60,7 @@ class Experiment(ABC):
     def read_data(self):
         data_config = self.config['data']
 
+
         if 'fold' in data_config:
             train_meta, val_meta = get_fold(
                 self.train_meta,
@@ -70,9 +71,15 @@ class Experiment(ABC):
         else:
             train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
 
+        if 'teacher_path' in data_config:
+            teacher_pd = pd.read_csv(data_config['teacher_path'])
+        else:
+            teacher_pd = None
+
         train_dataset = BirdDataset(
             train_meta,
             data_root=data_config['wav_root'],
+            teacher_pd=teacher_pd,
             crop_len=data_config['crop_len'],
             sample_rate=data_config['sample_rate'],
             augmentations=Compose([
@@ -86,7 +93,8 @@ class Experiment(ABC):
                     ),
                     RandomVolume(p=0.2, limit=4),
                     Normalize(p=1),
-                ])
+                ]),
+
         )
         train_dataloader = DataLoader(
             train_dataset,

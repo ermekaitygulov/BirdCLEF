@@ -14,9 +14,10 @@ def load_wav(fpath, offset, duration):
 
 
 class BirdDataset(Dataset):
-    def __init__(self, df, data_root, crop_len=30, sample_rate=32000, augmentations=None):
+    def __init__(self, df, data_root, teacher_pd=None, crop_len=30, sample_rate=32000, augmentations=None):
         super().__init__()
         self.df = df
+        self.teacher_pd = teacher_pd
         self.data_root = data_root
         self.crop_len = crop_len
         self.sample_rate = sample_rate
@@ -42,7 +43,10 @@ class BirdDataset(Dataset):
         if to_pad > 0:
             wav = np.pad(wav, (0, to_pad))
 
-        target = self.df.iloc[idx]['target']
+        if self.teacher_pd:
+            target = self.use_teacher(idx, offset=random_offset)
+        else:
+            target = self.df.iloc[idx]['target']
 
         # TODO: add weighting
 
@@ -55,3 +59,19 @@ class BirdDataset(Dataset):
 
     def __len__(self):
         return len(self.df)
+
+    def use_teacher(self, idx, offset):
+        fname = self.df.iloc[idx]['filename']
+        left = offset
+        right = left + self.crop_len
+        fname_filter = self.teacher_pd.filename == fname
+        left_filter = (self.teacher_pd.left <= left) & (left < self.teacher_pd.right)
+        right_filter = (self.teacher_pd.left <= right) & (right < self.teacher_pd.right)
+        range_filter = left_filter | right_filter
+        matched_crops = self.teacher_pd[fname_filter & range_filter]
+        pred_weights = np.array([p for p in matched_crops['filt_pred'].values]).max(axis=0)
+        target = np.array(self.df.iloc[idx]['target']) + pred_weights
+        target = np.clip(target, 0, 1)
+        return target
+
+

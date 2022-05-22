@@ -27,7 +27,7 @@ from metrics import METRICS_CATALOG
 
 def get_fold(pd_data, fold_i, fold_count, random_state):
     kfold = KFold(fold_count, shuffle=True, random_state=random_state)
-    for i, train_idx, val_idx in kfold.split(pd_data, None):
+    for i, (train_idx, val_idx) in enumerate(kfold.split(pd_data, None)):
         if i == fold_i:
             train_pd = pd_data.iloc[train_idx]
             val_pd = pd_data.iloc[val_idx]
@@ -60,10 +60,10 @@ class Experiment(ABC):
     def read_data(self):
         data_config = self.config['data']
 
-        if 'fold_i' in data_config:
+        if 'fold' in data_config:
             train_meta, val_meta = get_fold(
                 self.train_meta,
-                fold_i=data_config['fold_i'],
+                fold_i=data_config['fold'],
                 fold_count=5,
                 random_state=42,
             )

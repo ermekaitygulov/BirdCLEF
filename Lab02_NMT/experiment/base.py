@@ -60,7 +60,6 @@ class Experiment(ABC):
     def read_data(self):
         data_config = self.config['data']
 
-
         if 'fold' in data_config:
             train_meta, val_meta = get_fold(
                 self.train_meta,
@@ -68,11 +67,15 @@ class Experiment(ABC):
                 fold_count=5,
                 random_state=42,
             )
+        elif 'all_data' in data_config:
+            _, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
+            train_meta = self.train_meta
         else:
             train_meta, val_meta = train_test_split(self.train_meta, test_size=0.2, random_state=42)
 
         if 'teacher_path' in data_config:
             teacher_pd = pd.read_csv(data_config['teacher_path'])
+            teacher_pd['filt_pred'] = teacher_pd.filt_pred.apply(eval)
         else:
             teacher_pd = None
 

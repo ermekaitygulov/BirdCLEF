@@ -43,7 +43,7 @@ class BirdDataset(Dataset):
         if to_pad > 0:
             wav = np.pad(wav, (0, to_pad))
 
-        if self.teacher_pd:
+        if self.teacher_pd is not None:
             target = self.use_teacher(idx, offset=random_offset)
         else:
             target = self.df.iloc[idx]['target']
@@ -69,9 +69,12 @@ class BirdDataset(Dataset):
         right_filter = (self.teacher_pd.left <= right) & (right < self.teacher_pd.right)
         range_filter = left_filter | right_filter
         matched_crops = self.teacher_pd[fname_filter & range_filter]
-        pred_weights = np.array([p for p in matched_crops['filt_pred'].values]).max(axis=0)
-        target = np.array(self.df.iloc[idx]['target']) + pred_weights
-        target = np.clip(target, 0, 1)
+        if matched_crops.shape[0] != 0:
+            pred_weights = np.array([p for p in matched_crops['filt_pred'].values]).max(axis=0)
+            target = np.array(self.df.iloc[idx]['target']) + pred_weights
+            target = np.clip(target, 0, 1)
+        else:
+            target = self.df.iloc[idx]['target']
         return target
 
 

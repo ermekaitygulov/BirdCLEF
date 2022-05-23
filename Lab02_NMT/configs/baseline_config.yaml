@@ -10,18 +10,18 @@ data:
   n_jobs: 4
   all_data:
 train:
-  epoch: 5
+  epoch: 10
   apex: False
   opt_class: Adam
   grad_clip: 1
   score_trsh: [0.1, 0.2, 0.3, 0.4]
-  save_freq: 10
+  save_freq: 1
   scheduler_class: CosineAnnealingLR
   scheduler_params:
     eta_min: 0.000001
     T_max: 500
-#  save_path: model_save/baseline_zswodzrl/all_data/   # !!!!!!!!!!!!!!
-model_path: model_save/baseline_39fvwny4/final-model.pt  # !!!!!!!!!!!!!!
+ save_path: model_save/baseline_072/all_data/   # !!!!!!!!!!!!!!
+model_path: model_save/baseline_072/final-model.pt  # !!!!!!!!!!!!!!
 model:
   name: 'attention'
   params:

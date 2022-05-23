@@ -20,7 +20,7 @@ train:
   scheduler_params:
     eta_min: 0.000001
     T_max: 500
- save_path: model_save/baseline_072/all_data/   # !!!!!!!!!!!!!!
+  save_path: model_save/baseline_072/all_data/   # !!!!!!!!!!!!!!
 model_path: model_save/baseline_072/final-model.pt  # !!!!!!!!!!!!!!
 model:
   name: 'attention'

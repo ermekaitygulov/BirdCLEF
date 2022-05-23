@@ -3,12 +3,12 @@ data:
   batch_size: 8
   meta_path: '../data/train_metadata_extended.csv'
   wav_root: '../data/train_audio'
-  teacher_path: '../data/teacher_target_filt.csv'
+#  teacher_path: '../data/teacher_target_filt.csv'
   crop_len: 30
   sample_rate: 32000
   test_wav_len: 5
   n_jobs: 4
-  all_data:
+#  all_data:
 train:
   epoch: 10
   apex: False
@@ -20,7 +20,7 @@ train:
   scheduler_params:
     eta_min: 0.000001
     T_max: 500
-  save_path: model_save/baseline_072/all_data/   # !!!!!!!!!!!!!!
+#  save_path: model_save/baseline_072/all_data/   # !!!!!!!!!!!!!!
 model_path: model_save/baseline_072/final-model.pt  # !!!!!!!!!!!!!!
 model:
   name: 'attention'

@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.distributions import Beta
 import torchaudio as ta
+from torch.nn import functional as F
 
 from utils import add_to_catalog
 
@@ -176,7 +177,7 @@ class AttentionNet(Net):
             x = x.permute(0, 2, 1, 3)  # b, c, t, m
 
         # average mel axis
-        x = x.mean(axis=-1)
+        x = self.reduce_mel_axis(x)
 
         attention_output = self.head(x)  # b, n_out
         logits = attention_output['logits']
@@ -196,6 +197,9 @@ class AttentionNet(Net):
             'max_logits': maxpool_logits,
             'mean_logits': mean_logits,
         }
+
+    def reduce_mel_axis(self, x):
+        return x.mean(axis=-1)
 
     @staticmethod
     def _init_head(input_chs, output_len):
@@ -283,6 +287,18 @@ class BCEFocalLoss(nn.Module):
         return loss
 
 
+class GeMFreq(nn.Module):
+    def __init__(self, p=3, eps=1e-6):
+        super().__init__()
+        self.p = torch.nn.Parameter(torch.ones(1) * p)
+        self.eps = eps
+
+    def forward(self, x):
+        p = self.p
+        eps = self.eps
+        return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), 1)).pow(1.0 / p)
+
+
 @add_to_catalog('efficient_focal', NN_CATALOG)
 class EffNet(FocalAttention):
     @staticmethod
@@ -296,3 +312,13 @@ class EffNet(FocalAttention):
         backbone = nn.Sequential(*layers)
         in_features = base_model.classifier.in_features
         return backbone, in_features
+
+
+@add_to_catalog('gem_attention', NN_CATALOG)
+class GemAttention(FocalAttention):
+    def __init__(self, *args, **kwargs):
+        super(GemAttention, self).__init__(*args, **kwargs)
+        self.gem = GeMFreq()
+
+    def reduce_mel_axis(self, x):
+        return self.gem(x).squeeze(-2)
